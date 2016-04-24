@@ -1,0 +1,7 @@
+# coding=utf-8
+config = {
+    'DB_URL': 'sqlite:///weather.db',
+    'REQUEST_INTERVAL': 24 * 60 * 60,
+    'REQUEST_CITIES': (u'北京', u'上海', u'广州'),
+    'APP_KEY': 'xxx'
+}

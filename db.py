@@ -1,5 +1,6 @@
 # coding=utf-8
 from datetime import datetime
+import simplejson as json
 from sqlalchemy import create_engine, Table, Column, Integer, String, MetaData, DateTime
 
 from config import config
