@@ -4,42 +4,50 @@ import logging
 import requests
 from config import config
 from db import db, weather
+from requests.adapters import HTTPAdapter
 
 
 logger = logging.getLogger('weather_record')
 
 
-def get_and_save_district_weather(district):
-    r = requests.get('http://v.juhe.cn/weather/index', params={
-        'cityname': district, 'key': config['APP_KEY'], 'format': 1
-    })
-    data = r.json()
-    logger.debug(r.text)
-    logger.debug(data.get('resultcode') + u' - ' + data.get('reason'))
-
-    if 'result' not in data:
-        logger.error(u'无法得到{}地区的天气信息'.format(district))
-        return
-
-    sql = weather.insert().values(
-        district=district,
-        entry=r.text,
-        format=1,
-    )
-    with db.connect() as connection:
-        result = connection.execute(sql)
-    return result.inserted_primary_key
-
-
 def get_weathers():
-    r = requests.get('http://v.juhe.cn/weather/citys', params={'key': config['APP_KEY']})
-    data = r.json()
-    logger.debug(r.text)
-    logger.debug(data.get('resultcode') + u' - ' + data.get('reason'))
-    if 'result' not in data:
-        logger.error(u'无法得到区域列表')
-        return
-    districts = [row.get('district') for row in data['result'] if row.get('city') in config['REQUEST_CITIES']]
+    with requests.Session() as s:
+        s.mount('http://v.juhe.cn/weather', HTTPAdapter(max_retries=3))
+        r = s.get('http://v.juhe.cn/weather/citys',
+                  params={'key': config['APP_KEY']},
+                  timeout=config['REQUEST_TIMEOUT'])
+        data = r.json()
 
-    for district in districts:
-        get_and_save_district_weather(district)
+        if 'result' not in data:
+            logger.error(u'无法得到区域列表')
+            return
+
+        districts = [row.get('district') for row in data['result']
+                     if row.get('city') in config['REQUEST_CITIES']]
+
+        resps = [s.get('http://v.juhe.cn/weather/index',
+                       params={'cityname': district, 'key': config['APP_KEY'], 'format': 1},
+                       timeout=config['REQUEST_TIMEOUT'])
+                 for district in districts]
+
+    with db.connect() as connection:
+        for resp, district in zip(resps, districts):
+            data = resp.json()
+
+            if 'result' not in data:
+                logger.error(u'无法得到{}地区的天气信息'.format(district))
+                continue
+
+            sql = weather.insert().values(
+                district=district,
+                entry=resp.text,
+                format=1,
+            )
+            connection.execute(sql)
+
+if __name__ == '__main__':
+    logger = logging.getLogger('weather_record')
+    logger.setLevel(logging.DEBUG)
+    steam_handler = logging.StreamHandler()
+    logger.addHandler(steam_handler)
+    get_weathers()
