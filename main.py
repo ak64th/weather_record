@@ -10,10 +10,9 @@ from db import db
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger('weather_record')
-    logger.setLevel(logging.DEBUG)
-    steam_handler = logging.StreamHandler()
-    logger.addHandler(steam_handler)
+    logger.addHandler(logging.StreamHandler())
 
     jobstores = {'default': SQLAlchemyJobStore(engine=db)}
     executors = {'default': ThreadPoolExecutor(20)}
