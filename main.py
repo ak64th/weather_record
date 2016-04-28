@@ -14,14 +14,11 @@ if __name__ == '__main__':
     logger = logging.getLogger('weather_record')
     logger.addHandler(logging.StreamHandler())
 
-    jobstores = {'default': SQLAlchemyJobStore(engine=db)}
     executors = {'default': ThreadPoolExecutor(20)}
-    job_defaults = {'max_instances': 3}
 
     # 确保数据表已经创建
-    # 设置定时器
-    scheduler = BlockingScheduler(logger=logger, jobstores=jobstores, executors=executors, job_defaults=job_defaults,
-                                  timezone=timezone('Asia/Shanghai'))
+    # 设置定时器，cron任务只需要放内存里。如果需要每隔一定时间执行任务，需要把任务放入数据库
+    scheduler = BlockingScheduler(logger=logger, executors=executors, timezone=timezone('Asia/Shanghai'))
     scheduler.add_job(get_weathers, trigger='cron', hour='10')
     try:
         scheduler.start()
