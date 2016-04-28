@@ -19,7 +19,7 @@ logger = logging.getLogger('weather_record')
 
 def get_weathers():
     with requests.Session() as s:
-        s.mount('http://v.juhe.cn/weather', HTTPAdapter(max_retries=3))
+        s.mount('http://v.juhe.cn/weather', HTTPAdapter(max_retries=2))
         r = s.get('http://v.juhe.cn/weather/citys',
                   params={'key': config['APP_KEY']},
                   timeout=config['REQUEST_TIMEOUT'])
